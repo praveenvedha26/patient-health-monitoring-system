@@ -1,0 +1,37 @@
+{
+  "patients": {
+    "66vY2Nbo1aNnvYEyHDBzFoSFeI73": {
+      "name": "Praveen Kumar",
+      "email": "mvpraveenmng@gmail.com",
+      "current": {
+        "temperature": 36.8,
+        "heartRate": 75,
+        "spo2": 98,
+        "lastUpdate": 1729850000000
+      },
+      "history": {
+        "1729849000000": {
+          "temperature": 36.7,
+          "heartRate": 72,
+          "spo2": 97,
+          "timestamp": 1729849000000,
+          "status": "normal"
+        },
+        "1729849500000": {
+          "temperature": 36.9,
+          "heartRate": 78,
+          "spo2": 98,
+          "timestamp": 1729849500000,
+          "status": "normal"
+        },
+        "1729850000000": {
+          "temperature": 36.8,
+          "heartRate": 75,
+          "spo2": 98,
+          "timestamp": 1729850000000,
+          "status": "normal"
+        }
+      }
+    }
+  }
+}
