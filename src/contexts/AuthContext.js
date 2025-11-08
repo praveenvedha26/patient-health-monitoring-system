@@ -1,52 +1,96 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { auth } from '../config/firebase';
+import { auth, firestore } from '../config/firebase';
 import { 
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext({});
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   const login = async (email, password) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Hard-code role for now
-    const role = 'patient'; // Everyone is a patient for testing
-    setUserRole(role);
-    return { user: userCredential.user, role };
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      setCurrentUser(user);
+      const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+      if (userDoc.exists()) {
+        setUserRole(userDoc.data().role);
+      } else {
+        setUserRole(null);
+        setAuthError("No user role found. Please check Firestore.");
+      }
+      setLoading(false);
+      return { user, role: userDoc?.data().role || null };
+    } catch (err) {
+      setCurrentUser(null);
+      setUserRole(null);
+      setLoading(false);
+      setAuthError(err.message);
+      throw err;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUserRole(null);
-    return signOut(auth);
+    setCurrentUser(null);
+    await signOut(auth);
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth changed:', user?.email || 'No user');
+    setLoading(true);
+    setAuthError(null);
+    const unsubscribe = onAuthStateChanged(auth, async user => {
       setCurrentUser(user);
-      
+
       if (user) {
-        // Hard-code role for testing
-        setUserRole('patient');
+        try {
+          const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserRole(userDoc.data().role);
+          } else {
+            setUserRole(null);
+            setAuthError("No user role found. Please check Firestore.");
+          }
+        } catch (err) {
+          setUserRole(null);
+          setAuthError("Failed to fetch user role: " + err.message);
+        }
       } else {
         setUserRole(null);
       }
-      
+
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  if (loading) {
+    return (
+      <div style={{width: "100%", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24}}>
+        Loading authentication...
+      </div>
+    );
+  }
+  if (authError) {
+    return (
+      <div style={{width: "100%", minHeight: "100vh", color: "red", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexDirection: "column"}}>
+        Authentication Error:<br/>{authError}
+      </div>
+    );
+  }
 
   const value = {
     currentUser,
@@ -57,7 +101,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading ? children : <div>Loading...</div>}
+      {children}
     </AuthContext.Provider>
   );
 };
