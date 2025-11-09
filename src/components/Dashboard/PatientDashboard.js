@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { database } from '../../config/firebase';
-import { ref, onValue } from 'firebase/database';
+import { firestore } from '../../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaThermometerHalf, FaHeartbeat, FaLungs } from 'react-icons/fa';
 import './Dashboard.css';
@@ -12,6 +12,7 @@ const PatientDashboard = () => {
     heartRate: 0,
     spo2: 0
   });
+  const [patientInfo, setPatientInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -23,43 +24,53 @@ const PatientDashboard = () => {
       return;
     }
 
-    const path = `patients/${currentUser.uid}/current`;
+    // Listen to real-time updates from Firestore patients collection
+    const patientRef = doc(firestore, 'patients', currentUser.uid);
     
-    try {
-      const healthRef = ref(database, path);
-      
-      const unsubscribe = onValue(
-        healthRef, 
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.val();
-            
-            setHealthData({
-              temperature: Number(data.temperature) || 0,
-              heartRate: Number(data.heartRate) || 0,
-              spo2: Number(data.spo2) || 0
-            });
-            setLastUpdate(new Date());
-            setIsLoading(false);
-            setErrorMessage('');
-          } else {
-            setIsLoading(false);
-            setErrorMessage('No health data available');
-          }
-        }, 
-        (error) => {
-          console.error('Firebase error:', error);
-          setIsLoading(false);
-          setErrorMessage(`Error: ${error.message}`);
-        }
-      );
+    const unsubscribe = onSnapshot(
+      patientRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          
+          // Set patient info
+          setPatientInfo({
+            name: data.name,
+            age: data.age,
+            email: data.email
+          });
 
-      return () => unsubscribe();
-    } catch (error) {
-      console.error('Exception:', error);
-      setIsLoading(false);
-      setErrorMessage(`Exception: ${error.message}`);
-    }
+          // Set vital signs if they exist
+          if (data.vitalSigns) {
+            setHealthData({
+              temperature: Number(data.vitalSigns.temperature) || 0,
+              heartRate: Number(data.vitalSigns.heartRate) || 0,
+              spo2: Number(data.vitalSigns.spO2) || 0
+            });
+            setLastUpdate(new Date(data.vitalSigns.lastUpdated));
+          } else {
+            setHealthData({
+              temperature: 0,
+              heartRate: 0,
+              spo2: 0
+            });
+          }
+          
+          setIsLoading(false);
+          setErrorMessage('');
+        } else {
+          setIsLoading(false);
+          setErrorMessage('No patient data found. Please contact your administrator.');
+        }
+      },
+      (error) => {
+        console.error('Firestore error:', error);
+        setIsLoading(false);
+        setErrorMessage(`Error: ${error.message}`);
+      }
+    );
+
+    return () => unsubscribe();
   }, [currentUser?.uid]);
 
   const getStatusColor = (type, value) => {
@@ -87,8 +98,10 @@ const PatientDashboard = () => {
   if (!currentUser) {
     return (
       <div className="dashboard-container">
-        <div className="error-state">
-          <h2>Please log in to view your dashboard</h2>
+        <div className="error-container">
+          <div className="error-icon">🔒</div>
+          <h3>Authentication Required</h3>
+          <p>Please log in to view your dashboard</p>
         </div>
       </div>
     );
@@ -99,10 +112,12 @@ const PatientDashboard = () => {
       {/* Page Header */}
       <div className="dashboard-header">
         <h1>Patient Health Monitoring Dashboard</h1>
-        <p>Real-time health parameter monitoring</p>
+        {patientInfo && (
+          <p>Welcome, {patientInfo.name} | Age: {patientInfo.age}</p>
+        )}
         {lastUpdate && (
           <p className="last-update">
-            Last updated: {lastUpdate.toLocaleTimeString()}
+            Last updated: {lastUpdate.toLocaleString()}
           </p>
         )}
       </div>
@@ -122,11 +137,11 @@ const PatientDashboard = () => {
           <h3>No Data Available</h3>
           <p>{errorMessage}</p>
           <div className="error-help">
-            <p><strong>Please check:</strong></p>
+            <p><strong>Possible reasons:</strong></p>
             <ul>
-              <li>Your ESP32 device is connected and sending data</li>
-              <li>Data exists in Firebase at: <code>patients/{currentUser.uid}/current</code></li>
-              <li>Firebase security rules allow read access</li>
+              <li>Your patient profile hasn't been created by an administrator</li>
+              <li>Your vital signs haven't been recorded yet</li>
+              <li>Contact your healthcare provider for assistance</li>
             </ul>
           </div>
         </div>
@@ -227,7 +242,11 @@ const PatientDashboard = () => {
           {/* Info Banner */}
           <div className="info-banner">
             <div className="banner-icon">📊</div>
-            <p>Data updates automatically from your ESP32 device in real-time</p>
+            <p>
+              {healthData.temperature > 0 || healthData.heartRate > 0 || healthData.spo2 > 0
+                ? 'Your vital signs are being monitored. Data updates automatically.'
+                : 'Waiting for vital signs data. Please consult with your healthcare provider.'}
+            </p>
           </div>
         </>
       )}
