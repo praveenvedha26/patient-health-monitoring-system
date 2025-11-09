@@ -1,23 +1,160 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ═══════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════
 
-# dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 
-# testing
-/coverage
+# ═══════════════════════════════════════════════════════════
+# FIREBASE CREDENTIALS (VERY IMPORTANT - NEVER COMMIT!)
+# ═══════════════════════════════════════════════════════════
 
-# production
-/build
+# Firebase config files with API keys
+src/config/firebase.js
+src/config/firebase.ts
+firebase-config.js
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
+firestore.rules
 
-# misc
-.DS_Store
+# Firebase service account keys
+serviceAccountKey.json
+service-account-*.json
+*-firebase-adminsdk-*.json
+
+# Firebase emulator cache
+.firebase/
+firebase-emulator-*/
+
+# ═══════════════════════════════════════════════════════════
+# ENVIRONMENT VARIABLES
+# ═══════════════════════════════════════════════════════════
+
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# ═══════════════════════════════════════════════════════════
+# BUILD & PRODUCTION
+# ═══════════════════════════════════════════════════════════
+
+/build
+/dist
+/.next
+/out
+
+# ═══════════════════════════════════════════════════════════
+# TESTING
+# ═══════════════════════════════════════════════════════════
+
+/coverage
+*.coverage
+.nyc_output
+
+# ═══════════════════════════════════════════════════════════
+# MISC
+# ═══════════════════════════════════════════════════════════
+
+.DS_Store
+Thumbs.db
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+
+# ═══════════════════════════════════════════════════════════
+# IDE / EDITOR
+# ═══════════════════════════════════════════════════════════
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# WebStorm
+.idea/
+*.sw?
+
+# ═══════════════════════════════════════════════════════════
+# CACHE
+# ═══════════════════════════════════════════════════════════
+
+.cache
+.parcel-cache
+.eslintcache
+.npm
+.yarn-integrity
+
+# ═══════════════════════════════════════════════════════════
+# TEMPORARY FILES
+# ═══════════════════════════════════════════════════════════
+
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ═══════════════════════════════════════════════════════════
+# ARDUINO / ESP32 (if storing Arduino code in same repo)
+# ═══════════════════════════════════════════════════════════
+
+*.hex
+*.bin
+*.elf
+*.map
+.pio
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+
+# ═══════════════════════════════════════════════════════════
+# DOCUMENTATION
+# ═══════════════════════════════════════════════════════════
+
+# Keep README but ignore other docs if auto-generated
+# /docs/
+
+# ═══════════════════════════════════════════════════════════
+# OPTIONAL - ONLY IF YOU USE THESE
+# ═══════════════════════════════════════════════════════════
+
+# TypeScript
+*.tsbuildinfo
+
+# Storybook
+storybook-static/
+
+# Vite
+.vite
+
+# Docker
+docker-compose.override.yml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
