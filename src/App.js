@@ -1,12 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './components/Auth/Login';
-import PatientDashboard from './components/Dashboard/PatientDashboard';
-import DoctorDashboard from './components/Dashboard/DoctorDashboard';
-import AdminDashboard from './components/Dashboard/AdminDashboard';
-import HealthHistory from './components/HealthHistory/HealthHistory';
-import About from './components/About/About';
+import { publicRoutes, protectedRoutes, getDashboardPath } from './routes';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import Navbar from './components/Navigation/Navbar';
 import Chatbot from './components/Chatbot/Chatbot';
 import './App.css';
@@ -24,7 +20,7 @@ function App() {
 const AppContent = () => {
   const { currentUser, userRole } = useAuth();
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   console.log('AppContent render:', { 
     currentUser: currentUser?.email, 
@@ -34,130 +30,58 @@ const AppContent = () => {
 
   return (
     <div className="App">
-      {/* Only show Navbar if user is logged in AND not on login page */}
-      {currentUser && !isLoginPage && <Navbar />}
+      {/* Show Navbar only when logged in and not on auth pages */}
+      {currentUser && !isAuthPage && <Navbar />}
       
       <Routes>
-        {/* Login Route */}
-        <Route 
-          path="/login" 
+        {/* Public Routes (Login, Register) */}
+        {publicRoutes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              currentUser && userRole ? (
+                // If already logged in, redirect to appropriate dashboard
+                <Navigate to={getDashboardPath(userRole)} replace />
+              ) : (
+                // Not logged in, show the public route
+                route.element
+              )
+            }
+          />
+        ))}
+
+        {/* Protected Routes (Dashboards, Health History, About) */}
+        {protectedRoutes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={
+              <ProtectedRoute allowedRoles={route.allowedRoles}>
+                {route.element}
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
+        {/* Root Route - Redirect to appropriate dashboard or login */}
+        <Route
+          path="/"
           element={
-            currentUser ? (
-              // If already logged in, redirect to appropriate dashboard
-              <Navigate to={
-                userRole === 'doctor' ? '/doctor-dashboard' :
-                userRole === 'patient' ? '/patient-dashboard' :
-                userRole === 'admin' ? '/admin-dashboard' :
-                '/login'
-              } replace />
-            ) : (
-              <Login />
-            )
-          } 
-        />
-        
-        {/* Patient Dashboard */}
-        <Route 
-          path="/patient-dashboard" 
-          element={
-            currentUser && userRole === 'patient' ? (
-              <PatientDashboard />
-            ) : currentUser ? (
-              // Wrong role, redirect to correct dashboard
-              <Navigate to={
-                userRole === 'doctor' ? '/doctor-dashboard' :
-                userRole === 'admin' ? '/admin-dashboard' :
-                '/login'
-              } replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        
-        {/* Doctor Dashboard */}
-        <Route 
-          path="/doctor-dashboard" 
-          element={
-            currentUser && userRole === 'doctor' ? (
-              <DoctorDashboard />
-            ) : currentUser ? (
-              <Navigate to={
-                userRole === 'patient' ? '/patient-dashboard' :
-                userRole === 'admin' ? '/admin-dashboard' :
-                '/login'
-              } replace />
+            currentUser && userRole ? (
+              <Navigate to={getDashboardPath(userRole)} replace />
             ) : (
               <Navigate to="/login" replace />
             )
-          } 
+          }
         />
-        
-        {/* Admin Dashboard */}
-        <Route 
-          path="/admin-dashboard" 
-          element={
-            currentUser && userRole === 'admin' ? (
-              <AdminDashboard />
-            ) : currentUser ? (
-              <Navigate to={
-                userRole === 'doctor' ? '/doctor-dashboard' :
-                userRole === 'patient' ? '/patient-dashboard' :
-                '/login'
-              } replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        
-        {/* Health History */}
-        <Route 
-          path="/health-history" 
-          element={
-            currentUser && (userRole === 'doctor' || userRole === 'patient') ? (
-              <HealthHistory />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        
-        {/* About */}
-        <Route 
-          path="/about" 
-          element={
-            currentUser ? (
-              <About />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        
-        {/* Root Route */}
-        <Route 
-          path="/" 
-          element={
-            currentUser ? (
-              <Navigate to={
-                userRole === 'doctor' ? '/doctor-dashboard' :
-                userRole === 'patient' ? '/patient-dashboard' :
-                userRole === 'admin' ? '/admin-dashboard' :
-                '/login'
-              } replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-        
-        {/* Catch all - redirect to login */}
+
+        {/* 404 - Catch all unknown routes and redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       
-      {/* Only show Chatbot if user is logged in AND not on login page */}
-      {currentUser && !isLoginPage && <Chatbot />}
+      {/* Show Chatbot only when logged in and not on auth pages */}
+      {currentUser && !isAuthPage && <Chatbot />}
     </div>
   );
 };

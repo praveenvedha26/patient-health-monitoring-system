@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -14,10 +15,25 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate role selection
+    if (!selectedRole) {
+      setError('Please select your role');
+      return;
+    }
+    
     try {
       setError('');
       setLoading(true);
+      
+      // Login and get the user's actual role from Firestore
       const { role } = await login(email, password);
+      
+      // Verify the selected role matches the user's actual role
+      if (role !== selectedRole) {
+        setError(`Invalid role selection. Your account is registered as ${role}.`);
+        setLoading(false);
+        return;
+      }
       
       console.log('Login successful, role:', role);
       
@@ -51,6 +67,23 @@ const Login = () => {
         
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
+            <label htmlFor="role">Select Role</label>
+            <select
+              id="role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              required
+              disabled={loading}
+              className="role-select"
+            >
+              <option value="">-- Choose Your Role --</option>
+              <option value="patient">Patient</option>
+              <option value="doctor">Doctor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          
+          <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
               type="email"
@@ -80,6 +113,10 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        
+        <div className="register-section">
+          <p>Don't have an account? <Link to="/register" className="register-link">Register here</Link></p>
+        </div>
         
         <div className="role-info">
           <p>Access Roles: Doctor | Patient | Admin</p>
